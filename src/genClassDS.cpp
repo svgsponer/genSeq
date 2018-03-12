@@ -18,21 +18,8 @@
 #include <future>    //for std::async
 #include "cmdline.h"
 
-// typedef std::vector<char> char_array;
-// typedef std::vector<std::pair<std::string, double>> motif_array;
-// typedef std::vector<std::pair<int, std::string>> dataset;
-// typedef std::function<char(void)> char_generator;
-
-template <typename T1, typename T2>
-struct pair_1st_cmp: public std::binary_function<bool, T1, T2> {
-    bool operator () (const std::pair <T1, T2>& x1, const std::pair<T1, T2> &x2)
-    {
-        return x1.first > x2.first;
-    }
-};
-
 using char_array = std::vector<char>;
-using motif_array = std::unordered_map<std::string, double>;
+using motif_map = std::unordered_map<std::string, double>;
 using char_generator = std::function<char(void)>;
 
 char_array charset()
@@ -47,7 +34,7 @@ char_array charset()
                           '0','1','2','3','4',
                           '5','6','7','8','9'
                       });
-};
+}
 
 std::string random_string(const size_t length, char_generator rand_char )
 {
@@ -59,11 +46,14 @@ std::string random_string(const size_t length, char_generator rand_char )
 struct Dataset{
     std::vector<double> scores;
     std::vector<std::string> sequences;
-    // std::vector<std::pair<double, std::string>> data;
+
     void add(double y, std::string seq){
-        // std::cout << "Add: " << y << ' ' << seq << "\n";
         scores.push_back(y);
         sequences.push_back(seq);
+    }
+
+    std::size_t size(){
+        return scores.size();
     }
 };
 
@@ -76,7 +66,7 @@ std::ostream& operator<<(std::ostream& os, const Dataset& ds){
 
 Dataset create_dataset(const int num_seq,
                  const int seq_length,
-                 const motif_array motifs,
+                 const motif_map motifs,
                  char_generator rand_char){
     Dataset ds;
     int total_number_rebuild = 0;
@@ -89,7 +79,7 @@ Dataset create_dataset(const int num_seq,
         double y = 0;
         int number_rebuild = -1;
         auto motif_counter = 0;
-        do{
+        while(!has_motif){
             ++number_rebuild;
             seq = random_string(seq_length, rand_char);
             y = 0;
@@ -103,7 +93,6 @@ Dataset create_dataset(const int num_seq,
                 }
             }
         }
-        while(!has_motif);
         min_motifs_counter = std::min(min_motifs_counter, motif_counter);
         max_motifs_counter = std::max(max_motifs_counter, motif_counter);
         avg_motifs_counter += motif_counter;
@@ -122,12 +111,12 @@ Dataset create_dataset(const int num_seq,
 }
 
 /// Creates random motifs and corresponding weights currently norm(0,5) distributed.
-motif_array generate_motifs(const unsigned int motif_length,
+motif_map generate_motifs(const unsigned int motif_length,
                             const unsigned int num_motifs,
                             char_generator rand_char){
     std::mt19937 rngMT (std::random_device{}());
     std::normal_distribution<double> rand_weight(0, 5);
-    motif_array motifs;
+    motif_map motifs;
     while(motifs.size() != num_motifs){
         motifs.emplace(random_string(motif_length, rand_char), rand_weight(rngMT));
     }
@@ -182,7 +171,7 @@ int main(int argc, char* argv[])
     auto randchar = [ ch_set,&dist,&rng ](){return ch_set[ dist(rng) ];};
 
     // Generate motifs
-    motif_array motifs = generate_motifs(motif_length, num_motifs, randchar);
+    motif_map motifs = generate_motifs(motif_length, num_motifs, randchar);
 
     auto dataset = create_dataset(num_seq, seq_length, motifs, randchar);
     auto threshold = get_treshold(dataset.scores, ratio);
