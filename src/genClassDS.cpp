@@ -132,6 +132,28 @@ double get_treshold(std::vector<double> scores, double ratio){
     return t;
 }
 
+std::tuple<Dataset, Dataset> split_dataset(Dataset& ds, double ratio){
+
+    int dist = ds.scores.size() * ratio;
+    Dataset training_set;
+    std::copy(ds.scores.begin() + dist, std::end(ds.scores), std::back_inserter(training_set.scores));
+    std::copy(ds.sequences.begin() + dist, std::end(ds.sequences), std::back_inserter(training_set.sequences));
+
+    Dataset test_set;
+    std::copy(ds.scores.begin(), ds.scores.begin() + dist, std::back_inserter(test_set.scores));
+    std::copy(ds.sequences.begin(), ds.sequences.begin() + dist, std::back_inserter(test_set.sequences));
+
+    return std::make_tuple(training_set, test_set);
+}
+
+void print_stats(Dataset& ds){
+    auto pos = std::count(std::begin(ds.scores), std::end(ds.scores), 1);
+    auto neg = ds.size() - pos;
+    std::cout << "Number of sequences:\t" << ds.scores.size() << '\n'
+              << "Positive sequences:\t" << pos << '\n'
+              << "Negative sequences:\t" << neg << '\n';
+}
+
 int main(int argc, char* argv[])
 {
     cmdline::parser cmd_parser;
@@ -146,11 +168,13 @@ int main(int argc, char* argv[])
     cmd_parser.add<unsigned int>("num_seq", 'n', "Number of sequences created", false, 10000);
     cmd_parser.add<unsigned int>("seq_length", 'l', "Sequence length", false, 5000);
     cmd_parser.add<double>("ratio", 'r', "Ratio possitive to negative class", false, 0.5);
+    cmd_parser.add<double>("ttratio", 't', "Ratio between test and trainingset size", false, 0.2);
     cmd_parser.add<unsigned int>("motiv_length", 'm', "Motiv length", false, 5);
     cmd_parser.add<unsigned int>("num_motifs", 's', "Number of motivs", false, 5);
     cmd_parser.parse_check(argc, argv);
     auto alphabet_size = cmd_parser.get<unsigned int>("alphabet_size");
     auto ratio = cmd_parser.get<double>("ratio");
+    auto tt_ratio = cmd_parser.get<double>("ttratio");
     auto seq_length = cmd_parser.get<unsigned int>("seq_length");
     auto num_seq = cmd_parser.get<unsigned int>("num_seq");
     auto motif_length = cmd_parser.get<unsigned int>("motiv_length");
@@ -176,31 +200,30 @@ int main(int argc, char* argv[])
     auto dataset = create_dataset(num_seq, seq_length, motifs, randchar);
     auto threshold = get_treshold(dataset.scores, ratio);
 
-    auto pos = 0;
-    auto neg = 0;
     std::for_each(std::begin(dataset.scores), std::end(dataset.scores),
-                  [threshold,&pos, &neg](double& score) {
-                      if(score <= threshold){
-                          ++neg;
-                          score = -1;
-                      }else{
-                          ++pos;
-                          score = 1;
-                      };});
-
-    std::cout << "Number of sequences:\t" << dataset.scores.size() << '\n'
-              << "Positive sequences:\t" << pos << '\n'
-              << "Negative sequences:\t" << neg << '\n';
+                  [threshold](double& score) {
+                      score = (score <= threshold) ? -1 : +1;});
 
 
+    // Calculate and print stats
+    std::cout << "Complete set:"  << "\n";
+    print_stats(dataset);
 
+    Dataset train_set;
+    Dataset test_set;
+    std::tie(train_set, test_set) = split_dataset(dataset, tt_ratio);
+
+    std::cout << "Training set:"  << "\n";
+    print_stats(train_set);
+    std::cout << "Test set:"  << "\n";
+    print_stats(test_set);
+
+    // Save dataset
     std::ofstream outfile_train ("toysequences_train");
-    outfile_train << dataset;
-    // dataset.print_stats();
+    outfile_train << train_set;
 
-    // std::ofstream outfile_test ("toysequences_test");
-    // outfile_test << test_set;
-    // test_set.print_stats();
+    std::ofstream outfile_test ("toysequences_test");
+    outfile_test << test_set;
 
     // Save correct model
     std::ofstream outfile_correct_model ("toysequences_correctModel");
