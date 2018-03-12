@@ -180,11 +180,20 @@ int main(int argc, char* argv[])
     auto motif_length = cmd_parser.get<unsigned int>("motiv_length");
     auto num_motifs = cmd_parser.get<unsigned int>("num_motifs");
 
+    // Check for input errors
     if(num_motifs > std::pow(alphabet_size, motif_length)){
         std::cout << "Invalid input: a maximum of " << std::pow(alphabet_size, motif_length)
                   << " unique motifs of length " << motif_length
                   <<  " are possible with with an alphabetsize of "
                   << alphabet_size << std::endl;
+        std::exit(-1);
+    }
+
+    if(seq_length < motif_length){
+        std::cout << "Invalid input: sequence length must be at least as long as the generated motifs."
+                  << "motif length: " << motif_length
+                  << "sequence length: " << seq_length
+                  << std::endl;
         std::exit(-1);
     }
 
