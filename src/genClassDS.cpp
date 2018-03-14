@@ -191,9 +191,16 @@ int main(int argc, char* argv[])
     }
 
     if(seq_length < motif_length){
-        std::cout << "Invalid input: sequence length must be at least as long as the generated motifs."
-                  << "motif length: " << motif_length
+        std::cout << "Invalid input: sequence length must be at least as long as the generated motifs.\n"
+                  << "motif length: " << motif_length << '\n'
                   << "sequence length: " << seq_length
+                  << std::endl;
+        std::exit(-1);
+    }
+
+    if(num_motifs <= 1){
+        std::cout << "Invalid input: at least two motifs required to produce different scores/classes.\n"
+                  << "num_motifs: " << num_motifs
                   << std::endl;
         std::exit(-1);
     }
