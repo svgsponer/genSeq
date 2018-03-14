@@ -10,12 +10,6 @@ else()
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin )
-
-include_directories("${PROJECT_SOURCE_DIR}/cmdline")
-set(LIBS ${LIBS} "${PROJECT_SOURCE_DIR}/cmdline/cmdline.h")
-
-set(THREADS_PREFER_PTHREAD_FLAG ON)
-find_package(Threads REQUIRED)
+set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
 add_subdirectory("src")
