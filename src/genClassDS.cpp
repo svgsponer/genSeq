@@ -98,6 +98,7 @@ Dataset create_dataset(const int num_seq,
         avg_motifs_counter += motif_counter;
         ds.add(y, seq);
         total_number_rebuild += number_rebuild;
+        printf("%d/%d\r", c, num_seq);
     }
     std::cout << "Average number of motifs per sequence:\t"
               << avg_motifs_counter / num_seq << '\n';
